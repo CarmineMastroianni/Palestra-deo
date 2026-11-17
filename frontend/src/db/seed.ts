@@ -62,8 +62,9 @@ export function defaultSettings(): AppSettings {
     },
     cloud: {
       enabled: false,
-      serverUrl: '',
-      token: '',
+      supabaseUrl: '',
+      supabaseAnonKey: '',
+      email: '',
       passphrase: '',
       autoSync: true,
       includePhotos: true,

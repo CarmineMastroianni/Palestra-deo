@@ -6,56 +6,78 @@ calcio a 5, misure corporee, foto prima/dopo, piano del nutrizionista, report PD
 sui dati registrati.
 
 ```
-frontend/   React 18 + TypeScript + Vite – PWA (IndexedDB, Service Worker, Three.js)  → Vercel
-backend/    Spring Boot 3 (Java 21) – OPZIONALE: backup cifrati + proxy Claude    → Render/Railway/Fly/Docker
-vercel.json configurazione di deploy del frontend
+frontend/            React 18 + TypeScript + Vite – PWA (IndexedDB, Service Worker, Three.js)
+frontend/api/        funzione serverless Vercel (facoltativa) per l'assistente Claude
+frontend/vercel.json configurazione Vercel (SPA, Service Worker, header di sicurezza)
+supabase/setup.sql   bucket privato + regole RLS per i backup cifrati (facoltativo)
 ```
 
-L'app funziona **interamente senza backend e senza account**: i dati restano sul dispositivo
-(IndexedDB) e l'app funziona offline. Il backend serve solo per la sincronizzazione cifrata tra
-dispositivi e per usare Claude senza inserire la chiave API nel telefono.
+Tutto è pubblicato su **Vercel**. **Supabase** si usa solo se vuoi il backup/sincronizzazione nel cloud.
+Senza Supabase l'app funziona completamente: i dati restano sul telefono (IndexedDB), anche offline.
 
-## Tutto modificabile dall'app (nessuna modifica al codice)
+> **Nessuna credenziale è nel codice.** Chiavi, URL e account si inseriscono da te: nelle variabili
+> d'ambiente di Vercel oppure nelle impostazioni dell'app. L'assistente AI è spento di default
+> (modalità "locale", nessun servizio esterno).
 
-Da **Profilo** l'utente può cambiare autonomamente:
+## 1. Pubblicazione su Vercel
 
-| Cosa | Dove |
-|---|---|
-| Età, altezza, peso iniziale, sport, ruoli, infortuni, obiettivi, periodo del programma | Dati personali e obiettivi |
-| Attività di ogni giorno della settimana, scheda assegnata, durata | Programma settimanale |
-| Schede: esercizi, ordine, serie, ripetizioni/secondi, recuperi, riscaldamento, cardio, protezione gambe | Schede (+ ripristino del programma originale) |
-| Esercizi: nome, tipo, muscoli, note tecniche, immagine/GIF, link video, schema 3D, incremento minimo | Libreria esercizi |
-| Fasi (adattamento, forza, consolidamento, transizione), date, RIR, settimane di scarico | Fasi e scarichi |
-| Percentuali di progressione, soglia RIR, soglia di recupero | Progressione e recupero |
-| Recuperi predefiniti, suoni, vibrazione, voce, notifiche, schermo acceso | Timer, suoni e notifiche |
-| Assistente locale o Claude (server o chiave personale), modello, consensi | Assistente AI |
-| Server di sincronizzazione, token, passphrase, backup automatico | Cloud e sincronizzazione |
-| PIN, biometria, blocco automatico | Sicurezza |
-| Colore, dimensione del testo, misure visibili | Aspetto |
-| Backup cifrato, export JSON/CSV, import, cancellazione totale | Esporta, importa, cancella |
-
-## Pubblicazione su Vercel (frontend)
-
-1. Su vercel.com → **Add New… → Project** → importa questo repository GitHub.
-2. Lascia **Root Directory** sulla radice del repository: `vercel.json` imposta già installazione, build
-   (`frontend/`) e cartella di output (`frontend/dist`), le regole SPA e gli header del Service Worker.
-3. Deploy. Non servono variabili d'ambiente.
-4. Sul telefono apri l'URL `https://…vercel.app`:
+1. Importa il repository su Vercel.
+2. **Root Directory: `frontend`** (Framework: Vite). Build `npm run build`, output `dist` – già indicati in
+   `frontend/vercel.json`.
+3. Deploy. Nessuna variabile d'ambiente è obbligatoria.
+4. Dal telefono apri l'URL `https://….vercel.app`:
    - **Android/Chrome**: menu ⋮ → *Installa app*;
    - **iPhone/Safari**: Condividi → *Aggiungi alla schermata Home*.
 
-Ogni nuovo push ripubblica l'app; all'apertura compare "Nuova versione disponibile → Aggiorna".
+Ogni push ripubblica l'app; all'apertura compare "Nuova versione disponibile → Aggiorna".
 
-## Backend opzionale (Spring Boot)
+## 2. Supabase (facoltativo: backup cifrato e sincronizzazione)
 
-Vercel non esegue Java, quindi il backend va pubblicato su un servizio che supporta Docker
-(es. Render con il `backend/render.yaml` incluso, Railway, Fly.io o una VPS). Dettagli in
-[`backend/README.md`](backend/README.md). In breve:
+1. Crea un progetto su supabase.com (piano gratuito sufficiente).
+2. SQL Editor → incolla ed esegui [`supabase/setup.sql`](supabase/setup.sql): crea il bucket privato
+   `backups` e le regole che permettono a ogni utente di accedere solo alla propria cartella.
+3. Nell'app: Profilo → **Cloud e sincronizzazione** → inserisci *Project URL* e chiave pubblica
+   *anon/publishable* (Supabase → Project Settings → API), crea il tuo account, scegli una passphrase.
+   In alternativa imposta in Vercel `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (valori pubblici).
+4. In Supabase → Authentication, **disattiva le nuove registrazioni** dopo aver creato il tuo account.
 
-1. Pubblica `backend/` come servizio Docker e imposta `APP_TOKEN` (stringa casuale lunga),
-   `ALLOWED_ORIGINS` (l'URL Vercel) e, se vuoi l'AI via server, `ANTHROPIC_API_KEY`.
-2. Nell'app: Profilo → Cloud e sincronizzazione → indirizzo del server, token e passphrase.
-3. I dati vengono cifrati sul telefono (AES-256-GCM, PBKDF2) prima dell'invio: il server non può leggerli.
+I dati vengono cifrati sul telefono (AES-256-GCM, chiave derivata dalla passphrase con PBKDF2) prima
+dell'invio: Supabase conserva solo file illeggibili. Vengono mantenute le ultime 10 versioni.
+Non usare mai la chiave `service_role` nell'app.
+
+## 3. Assistente AI (facoltativo, spento di default)
+
+La specifica richiedeva un assistente che risponda sui dati registrati. Sono disponibili tre modalità
+(Profilo → Assistente AI):
+
+| Modalità | Cosa serve | Dati inviati |
+|---|---|---|
+| **Locale** (predefinita) | niente | nessuno: calcoli sul telefono, funziona offline |
+| **Claude tramite Vercel** | variabili Vercel impostate da te + accesso Supabase | riepilogo testuale dei soli dati consentiti |
+| **Claude con chiave personale** | una chiave API inserita nel telefono | riepilogo testuale dei soli dati consentiti |
+
+Per la modalità Vercel imposta in *Project Settings → Environment Variables* (lato server):
+`ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `ALLOWED_EMAILS` (le email autorizzate) e,
+facoltativo, `AI_MODEL` (predefinito `claude-opus-5-5`). La funzione `/api/ai/chat` resta spenta finché
+`ANTHROPIC_API_KEY` e `ALLOWED_EMAILS` non sono impostate, e accetta solo utenti Supabase autenticati
+presenti in `ALLOWED_EMAILS`: nessun altro può usare la chiave. Foto e documenti non vengono mai inviati.
+
+## Tutto modificabile dall'app
+
+| Cosa | Dove (Profilo) |
+|---|---|
+| Età, altezza, peso iniziale, sport, ruoli, infortuni, obiettivi, periodo | Dati personali e obiettivi |
+| Attività di ogni giorno, scheda assegnata, durata | Programma settimanale |
+| Esercizi, ordine, serie, ripetizioni/secondi, recuperi, riscaldamento, cardio, protezione gambe | Schede (+ ripristino del programma originale) |
+| Nome, tipo, muscoli, note tecniche, immagine/GIF, link video, schema 3D, incremento minimo | Libreria esercizi |
+| Fasi, date, RIR, settimane di scarico | Fasi e scarichi |
+| Percentuali di progressione, soglia RIR, soglia di recupero | Progressione e recupero |
+| Recuperi predefiniti, suoni, vibrazione, voce, notifiche, schermo acceso | Timer, suoni e notifiche |
+| Modalità assistente, modello, consensi sui dati | Assistente AI |
+| Supabase, account, passphrase, backup automatico | Cloud e sincronizzazione |
+| PIN, biometria, blocco automatico | Sicurezza |
+| Colore, dimensione testo, misure visibili | Aspetto |
+| Backup cifrato, export JSON/CSV, import, cancellazione totale | Esporta, importa, cancella |
 
 ## Sviluppo locale
 
@@ -64,30 +86,16 @@ cd frontend && npm install
 npm run dev        # http://localhost:5173
 npm test           # test unitari (progressione, timer, dieta, recupero, cifratura)
 npm run build      # build di produzione con Service Worker
-
-cd backend && mvn spring-boot:run   # opzionale, http://localhost:8080
 ```
 
-## Privacy
+## Cosa NON è disponibile (indicato anche in Profilo → Stato funzioni)
 
-- Foto, misure e documenti della dieta restano sul dispositivo; nessun invio a servizi esterni senza
-  consenso esplicito.
-- L'assistente AI (se attivato) riceve solo un riepilogo testuale dei dati per cui l'utente ha dato il
-  consenso; mai foto o documenti originali.
-- L'OCR delle foto della dieta avviene sul telefono (Tesseract.js); al primo uso scarica il motore e la
-  lingua italiana dal CDN jsDelivr, ma l'immagine non viene inviata.
-- Il PIN protegge l'accesso all'interfaccia; l'archivio del browser non è cifrato dal PIN, per questo
-  backup ed esportazioni cifrate sono disponibili.
-
-## Cosa NON è disponibile (indicato anche nell'app, Profilo → Stato funzioni)
-
-- **Conversione automatica foto → avatar 3D realistico.** L'app mostra un manichino parametrico basato
-  sulle misure registrate (dichiarato come non fotorealistico) e permette di importare un modello
-  GLB/GLTF creato con un servizio di scansione 3D specializzato.
-- **Immagini e video degli esercizi preinstallati.** L'utente può caricare foto/GIF o collegare video.
-  La dimostrazione 3D è uno schema semplificato del movimento.
-- **Notifiche/timer garantiti con app chiusa.** I timer usano l'orario assoluto e si riallineano alla
+- **Conversione automatica foto → avatar 3D realistico.** C'è un manichino parametrico costruito dalle
+  misure registrate (dichiarato come non fotorealistico) e l'import di modelli GLB/GLTF creati con un
+  servizio di scansione 3D specializzato.
+- **Immagini e video degli esercizi preinstallati**: si caricano foto/GIF o si collegano video.
+- **Notifiche/timer garantiti con app chiusa**: i timer usano l'orario assoluto e si riallineano alla
   riapertura; le notifiche in background dipendono dal sistema operativo.
-- La lettura automatica del piano alimentare è euristica: va verificata con l'originale, che resta
-  sempre consultabile e non viene modificato. I file `.doc` (vecchio formato Word) sono consultabili ma
-  non letti automaticamente: salvarli come `.docx` o PDF.
+- La lettura automatica del piano alimentare è euristica e va verificata con l'originale (che resta
+  sempre consultabile e non viene modificato). I `.doc` del vecchio Word si consultano ma non vengono letti.
+- Il PIN protegge l'accesso all'interfaccia; l'archivio del browser non è cifrato dal PIN.

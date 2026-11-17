@@ -154,8 +154,9 @@ export interface AiSettings {
 
 export interface CloudSettings {
   enabled: boolean;
-  serverUrl: string;
-  token: string;
+  supabaseUrl: string;     // es. https://xxxx.supabase.co (configurato dall'utente)
+  supabaseAnonKey: string; // chiave pubblica "anon" del progetto Supabase dell'utente
+  email: string;           // account Supabase con cui si accede
   passphrase: string; // solo su questo dispositivo, mai esportata
   autoSync: boolean;
   includePhotos: boolean;

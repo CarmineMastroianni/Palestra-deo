@@ -18,7 +18,7 @@ export default function Assistant() {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs?.length, busy]);
   if (!s || !msgs) return null;
-  const aiConfigured = s.ai.mode !== 'local' && (s.ai.mode === 'server' ? !!s.cloud.serverUrl : !!s.ai.apiKey);
+  const aiConfigured = s.ai.mode !== 'local' && (s.ai.mode === 'server' ? true : !!s.ai.apiKey);
   const aiActive = aiConfigured && useAi;
 
   const ask = async (q: string) => {
@@ -51,7 +51,7 @@ export default function Assistant() {
     <div className="page" style={{ minHeight: 'calc(100vh - 90px)' }}>
       <PageHeader title="Coach" back right={msgs.length > 0 ? <ConfirmButton className="btn sm ghost" confirmText="Svuota?" onConfirm={() => db.chat.clear()}>Svuota</ConfirmButton> : undefined} />
       <div className="row between small">
-        <span className={`badge ${aiActive ? 'ok' : ''}`}>{aiActive ? `AI Claude (${s.ai.mode === 'server' ? 'tramite server' : 'diretto'})` : 'Assistente locale · offline'}</span>
+        <span className={`badge ${aiActive ? 'ok' : ''}`}>{aiActive ? `AI Claude (${s.ai.mode === 'server' ? 'tramite Vercel' : 'chiave personale'})` : 'Assistente locale · offline'}</span>
         {aiConfigured ? <label className="check small"><input type="checkbox" checked={useAi} onChange={(e) => setUseAi(e.target.checked)} /> usa AI</label> : <Link to="/profilo/ai" className="small">Configura AI</Link>}
       </div>
       {aiActive && <div className="tiny muted">Vengono inviati solo i dati testuali per cui hai dato il consenso ({[s.ai.consentTrainingData && 'allenamenti', s.ai.consentBodyData && 'misure', s.ai.consentDietText && 'dieta'].filter(Boolean).join(', ') || 'nessuno, solo profilo e programma'}). Mai foto o documenti.</div>}

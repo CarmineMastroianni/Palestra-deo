@@ -1,8 +1,6 @@
 node_modules/
 frontend/dist/
 .vercel
-backend/target/
-backend/data/
 *.log
 .DS_Store
 e2e-out/

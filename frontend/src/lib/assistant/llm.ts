@@ -1,9 +1,10 @@
 // Assistente AI (Claude). Due modalità configurabili dall'utente:
-//  - "server": tramite il backend Spring Boot (la chiave API resta sul server)
+//  - "server": tramite la funzione Vercel /api/ai/chat (la chiave API resta nelle variabili di Vercel)
 //  - "direct": dal browser con la chiave API dell'utente salvata solo su questo dispositivo
 // Si inviano solo il riepilogo testuale dei dati per cui c'è consenso: mai foto o documenti originali.
 import Anthropic from '@anthropic-ai/sdk';
 import type { AppSettings, ChatMessage } from '../../db/types';
+import { accessToken } from '../supabase';
 
 export const SYSTEM_PROMPT = `Sei il personal trainer digitale dell'utente nell'app "My Fitness & Futsal". Rispondi sempre in italiano, in modo conciso e pratico.
 Regole:
@@ -34,11 +35,11 @@ function buildMessages(history: ChatMessage[], question: string, context: string
 export async function askClaude(settings: AppSettings, history: ChatMessage[], question: string, context: string): Promise<string> {
   const messages = buildMessages(history, question, context);
   if (settings.ai.mode === 'server') {
-    const url = settings.cloud.serverUrl.replace(/\/+$/, '');
-    if (!url) throw new Error('Configura l\'indirizzo del server in Profilo → Cloud e sincronizzazione');
-    const res = await fetch(`${url}/api/ai/chat`, {
+    const token = await accessToken();
+    if (!token) throw new Error('Accedi con il tuo account in Profilo → Cloud e sincronizzazione');
+    const res = await fetch('/api/ai/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${settings.cloud.token}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ system: SYSTEM_PROMPT, messages, model: settings.ai.model || undefined })
     });
     const j = await res.json().catch(() => ({}));

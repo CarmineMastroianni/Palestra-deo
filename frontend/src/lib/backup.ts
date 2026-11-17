@@ -29,7 +29,7 @@ function stripSecrets(s: AppSettings): AppSettings {
   return {
     ...s,
     ai: { ...s.ai, apiKey: '' },
-    cloud: { ...s.cloud, token: '', passphrase: '' },
+    cloud: { ...s.cloud, passphrase: '' },
     security: { autoLockMin: s.security.autoLockMin }
   };
 }
@@ -63,7 +63,7 @@ export async function restoreExport(file: ExportFile, opts: { keepLocalSecrets: 
       await table.clear();
       if (t === 'settings' && current && opts.keepLocalSecrets) {
         const s = (rows as AppSettings[])[0];
-        if (s) await table.bulkPut([{ ...s, ai: { ...s.ai, apiKey: current.ai.apiKey }, cloud: { ...s.cloud, token: current.cloud.token, passphrase: current.cloud.passphrase, deviceId: current.cloud.deviceId }, security: current.security }]);
+        if (s) await table.bulkPut([{ ...s, ai: { ...s.ai, apiKey: current.ai.apiKey }, cloud: { ...s.cloud, passphrase: current.cloud.passphrase, deviceId: current.cloud.deviceId }, security: current.security }]);
         continue;
       }
       await table.bulkPut(rows);
