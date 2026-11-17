@@ -1,0 +1,44 @@
+server:
+  port: ${PORT:8080}
+  # Tomcat: limiti alti per backup cifrati di grandi dimensioni (base64)
+  max-http-request-header-size: 16KB
+  tomcat:
+    max-http-form-post-size: ${MAX_UPLOAD_MB:150}MB
+    max-swallow-size: ${MAX_UPLOAD_MB:150}MB
+  compression:
+    enabled: true
+    mime-types: application/json
+
+spring:
+  application:
+    name: palestra-backend
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_MB:150}MB
+      max-request-size: ${MAX_UPLOAD_MB:150}MB
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:file:./data/palestra;AUTO_SERVER=FALSE}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  jackson:
+    default-property-inclusion: non_null
+
+app:
+  token: ${APP_TOKEN:}
+  allowed-origins: ${ALLOWED_ORIGINS:*}
+  max-upload-mb: ${MAX_UPLOAD_MB:150}
+  backup:
+    max-versions: ${BACKUP_MAX_VERSIONS:10}
+  ai:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${AI_MODEL:claude-opus-5-5}
+    max-tokens: ${AI_MAX_TOKENS:4000}
+    max-input-chars: 200000
+
+logging:
+  level:
+    root: INFO
